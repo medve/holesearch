@@ -1,26 +1,39 @@
 #include "stdafx.h"
 #include "HoleRater.h"
 
+//TODO:asserts for empty tables
 
-HoleRater::HoleRater(void)
+HoleRater::HoleRater(int circlesNum)
 {
-	//заглушка
+	this->setHolesMatchNum(circlesNum);
 }
 
 
 HoleRater::~HoleRater(void)
 {
-	//заглушка
+	if(this->holesMatchTable){
+		delete[] this->holesMatchTable;
+	}
+
+	if(this->matchTable){
+		delete[] this->matchTable;
+	}
+}
+
+float HoleRater::getDistanceBetweenPoints(Point2f point1, Point2f point2)
+{
+	float x, y;
+	x = (float)point1.x - point2.x;
+	y = (float)point1.y - point2.y;
+	
+	return sqrt(x*x + y*y);
 }
 
 float HoleRater::getHoleToCenter(Point hole)
 {
 	Point2f center = this->getCenter();
-	float x, y;
-	x = (float)hole.x - center.x;
-	y = (float)hole.y - center.y;
 	
-	return sqrt(x*x + y*y);
+	return this->getDistanceBetweenPoints(hole, center);
 }
 
 int HoleRater::rateHole(Point hole)
@@ -29,58 +42,44 @@ int HoleRater::rateHole(Point hole)
 		                         this->holesMatchNum, this->holesMinMatch);
 }
 
-void HoleRater::rateHoles(vector<Point2f>& holesList, int* holes,
-		                                   int strikesNum)
+void HoleRater::rateHoles(vector<Point2f>& holesList, vector<float>& holes)
 {
-	for( int hole_idx = 0; hole_idx < strikesNum; hole_idx++) {
-		if(hole_idx < holesList.size()) {
-			holes[hole_idx] = rateHole(holesList[hole_idx]);
-		} else {
-			holes[hole_idx] = 0;
-		}
+	for( int hole_idx = 0; hole_idx < holesList.size(); hole_idx++) {
+		holes.push_back(rateHole(holesList[hole_idx]));
 	}
 }
 
-void HoleRater::getMatchRateTable(int * matchTable)
+void HoleRater::getMatchRateTable(float * matchTable)
 {
 	for(int i = 0; i < this->matchNum; i++) {
 		matchTable[i] = this->matchTable[i];
 	}
 }
 
-void HoleRater::getHoleRateTable(int * holesMatchTable)
+void HoleRater::getHoleRateTable(float * holesMatchTable)
 {
 	for(int i = 0; i < this->holesMatchNum; i++) {
 		holesMatchTable[i] = this->holesMatchTable[i];
 	}
 }
 
-void HoleRater::setMatchRateParams(int * matchTable, int matchNum, int minMatch)
+void HoleRater::setMatchRateParams(float * matchTable, int matchNum, int minMatch)
 {
 	this->minMatch = minMatch;
+	this->setMatchTable(matchTable, holesMatchNum);
+}
+
+
+void HoleRater::setMatchTable(float * matchTable, int matchNum)
+{
+	if(!this->matchTable){
+		delete[] this->matchTable;
+	}
+
 	this->matchTable = matchTable;
 	this->matchNum = matchNum;
 }
 
-void HoleRater::setHoleRateParams(int * holesMatchTable, int holesMatchNum, int holesMinMatch)
-{
-	this->holesMinMatch = holesMinMatch;
-	this->holesMatchTable = holesMatchTable;
-	this->holesMatchNum = holesMatchNum;
-}
-
-void HoleRater::setMatchMatchTable(int * matchTable, int matchNum)
-{
-
-	this->matchTable = matchTable;
-	this->matchNum = matchNum;
-}
-
-void HoleRater::setHolesMatchTable(int * holesMatchTable, int holesMatchNum)
-{
-	this->holesMatchTable = holesMatchTable;
-	this->holesMatchNum = holesMatchNum;
-}
 
 void HoleRater::setMatchNum(int matchNum)
 {
@@ -89,6 +88,11 @@ void HoleRater::setMatchNum(int matchNum)
 
 void HoleRater::setHolesMatchNum(int holesMatchNum)
 {
+	if(!this->holesMatchTable){
+		delete[] this->holesMatchTable;
+	}
+
+	this->holesMatchTable = new float[holesMatchNum];
 	this->holesMatchNum = holesMatchNum;
 }
 
@@ -122,19 +126,24 @@ Point2f HoleRater::getCenter()
 	return this->center;
 }
 
-int HoleRater::getMatch(int* holes, int strikesNum)
-{
+int HoleRater::getHolesSum(vector<float>& holes){
 	//найдем сумму очков по дыркам
-	int pointSum = 0;
-	for( int i = 0; i < strikesNum; i++) {
+	float pointSum = 0;
+	for( int i = 0; i < holes.size(); i++) {
 		pointSum += holes[i];
 	}
 	
+	return pointSum;
+}
+
+int HoleRater::getMatch(vector<float>& holes)
+{
+	int pointSum = this->getHolesSum(holes);
 	return this->getMatchByTable(pointSum, this->matchTable, 
 		                         this->matchNum, this->minMatch);
 }
 
-int HoleRater::getMatchByTable(int points, int* matchTable, int matchNum, int minMatch)
+int HoleRater::getMatchByTable(int points, float* matchTable, int matchNum, int minMatch)
 {
 	//оценок мало, поэтому просто используем линейный поиск по 
 	//таблице граничных значений для оценок
@@ -154,7 +163,26 @@ int HoleRater::getMatchByTable(int points, int* matchTable, int matchNum, int mi
 	return match;
 }
 
-void HoleRater::caliber(Mat& sourceImg)
+Point2f circleCenterByThreePoints(Triangle t)
 {
-	//заглушка
+	float ma = (t.a.y - t.b.y)/(t.a.x - t.b.x);
+
+	float mb = (t.c.y - t.a.y)/(t.c.x - t.a.x);
+
+	float x = (ma*mb*(t.b.y - t.c.y) + mb*(t.b.x + t.a.y) - ma*(t.a.x + t.c.x))/2.0f*(mb-ma);
+
+	float y = -1.0f/mb*( x - (t.a.x + t.c.x)/2.0f) + (t.a.y + t.c.y)/2.0f;
+
+	return Point2f(x, y); 
+}
+
+void HoleRater::caliber(Triangle center_circle, Point2f* other_circles)
+{
+	Point2f center = circleCenterByThreePoints(center_circle);
+	this->setCenter(center);
+
+	this->holesMatchTable[0] = this->getDistanceBetweenPoints(center, center_circle.a);
+	for(int i = 1; i < this->holesMatchNum; i++){
+		holesMatchTable[i] = this->getDistanceBetweenPoints(center, other_circles[i]);
+	}
 }

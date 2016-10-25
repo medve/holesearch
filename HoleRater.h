@@ -8,55 +8,62 @@ using cv::Mat;
 using cv::Point;
 using cv::Point2f;
 
+typedef struct {Point2f a;
+				Point2f b;
+				Point2f c;} Triangle;
+
 class HoleRater
 {
 private:
-	float getHoleToCenter(Point hole);
-	int getMatchByTable(int points, int* matchTable, int matchNum, int minMatch);
+	
 
 	int matchNum;
-	int * matchTable;
+	float * matchTable;
 	int minMatch;
 
 	int holesMatchNum;
-	int * holesMatchTable;
+	float * holesMatchTable;
 	int holesMinMatch;
+
+	float getHoleToCenter(Point hole);
+	int getMatchByTable(int points, float* matchTable, int matchNum, int minMatch);
+	float getDistanceBetweenPoints(Point2f point1, Point2f point2);
+
+	void setMatchNum(int matchNum);
+	void setHolesMatchNum(int holesMatchNum);
+
+	int getHolesSum(vector<float>& holes);
 
 	Point2f center;
 
 public:
 	int rateHole(Point hole);
-	void rateHoles(vector<Point2f>& holesList, int* holes,
-		                                   int strikesNum);
+	void rateHoles(vector<Point2f>& holesList, vector<float>& holes);
 
-	void setMatchRateParams(int * matchTable, int matchNum, int minMatch);
-	void setHoleRateParams(int * holesMatchTable, int holesMatchNum, int holesMinMatch);
+	void setMatchRateParams(float * matchTable, int matchNum, int minMatch);
+	//void setHoleRateParams(float * holesMatchTable, int holesMatchNum, int holesMinMatch);
 
-	void getMatchRateParams(int * matchTable, int* matchNum, int* minMatch);
-	void getHoleRateParams(int * holesMatchTable, int* holesMatchNum, int* holesMinMatch);
+	//void getMatchRateParams(float * matchTable, int* matchNum, int* minMatch);
 
-	void setHolesMatchTable(int * holesMatchTable, int holesMatchNum);
-	void setMatchMatchTable(int * matchTable, int matchNum);
+	void setMatchTable(float * matchTable, int matchNum);
 
 	void setHolesMinMatch(int holesMinMatch);
 	void setMinMatch(int minMatch);
 
-	void setMatchNum(int matchNum);
-	void setHolesMatchNum(int holesMatchNum);
-
 	int getMatchNum();
 	int getHolesMatchNum();
 
-	void getHoleRateTable(int * holesMatchTable);
-	void getMatchRateTable(int * matchTable);
+
+	void getHoleRateTable(float * holesMatchTable);
+	void getMatchRateTable(float * matchTable);
 
 	void setCenter(Point2f);
 	Point2f getCenter();
-	void caliber(Mat& sourceImg);
-	int getMatch(int* holes, int strikesNum);
+	void caliber(Triangle center_circle, Point2f* other_circles);
+	int getMatch(vector<float>& holes);
 
 
-	HoleRater(void);
+	HoleRater(const int circlesNum = 5);
 	~HoleRater(void);
 };
 

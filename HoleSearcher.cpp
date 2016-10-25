@@ -32,11 +32,14 @@ void HoleSearcher::findHolesOnImage(
 					)
 {
 	float radius;
+	cv::Point2f cur_hole;
 
 	for(int ctr_idx = 0; ctr_idx < contours.size(); 
 		                                  ctr_idx++) {
+		
 		cv::minEnclosingCircle(contours[ctr_idx], 
-			                   holes[ctr_idx], radius);
+								cur_hole, radius);
+		holes.push_back(cur_hole);
 	}
 }
 

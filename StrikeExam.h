@@ -19,6 +19,8 @@ typedef struct {
 class StrikeExam
 {
 private:
+	static StrikeExam* instance;
+
 	void highlightHoles();
 	Mat currentImage;
 	Mat sourceImage;
@@ -54,7 +56,6 @@ public:
 	void initStrikingSession(Mat& sourceImg);
 	void stopStrikingSession();
 
-	void setStrikesNum(int strikesNum);
 	int getStrikesNum();
 
 	cv::Scalar getContourColor();
@@ -66,11 +67,17 @@ public:
 
 	void newInputImage(Mat& inputImage);
 
-	void getResults(int* holeRates, int* match);
+	void getResults(vector<float>& holeRates, int* match);
+
+	void caliberRater(Triangle center_circle, Point2f* other_circles);
+	Mat drawCaliber();
+	int getCirclesNum();
 
 	StrikeExam();
 	StrikeExam::StrikeExam(int strikesNum);
 	~StrikeExam(void);
+
+	static StrikeExam* getInstance();
 
 	//void setImageCenter(Point center);
 	//Point getImageCenter();
